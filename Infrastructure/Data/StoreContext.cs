@@ -20,6 +20,19 @@ public class StoreContext : DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetCallingAssembly());
 
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                var properties = entityType.ClrType.GetProperties().Where(p => p.PropertyType == typeof(decimal));
+
+                foreach (var property in properties)
+                {
+                    modelBuilder.Entity(entityType.Name).Property(property.Name).HasConversion<double>();
+                }
+            }
+        }
+
 
         var brandsData = File.ReadAllText("../Infrastructure/Data/SeedData/brands.json");
         var brands = JsonSerializer.Deserialize<List<ProductBrand>>(brandsData);
@@ -33,7 +46,7 @@ public class StoreContext : DbContext
         var products = JsonSerializer.Deserialize<List<Product>>(productsData);
 
         int idProduct = 0;
-        foreach(var product in products)
+        foreach (var product in products)
             product.Id = ++idProduct;
 
         modelBuilder.Entity<Product>().HasData(products);
